@@ -9,3 +9,7 @@ Requirements:
 -TA-Lib
 
 This framework was built in Python 3.5.2
+
+This is made for Mr. Peter Henry
+
+Inspired by Tito Ingargiola, Hack The Market
