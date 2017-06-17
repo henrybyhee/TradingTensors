@@ -235,7 +235,7 @@ class TradingEnv(gym.Env):
         print('Please invoke .initialise_simulator() method next to complete initialization')
 
     def initialise_simulator(self, csv, ATR, trade_period=1, train_split= 0.8, dummy_period=None):
-        self.sim = Simulator(csv, ATR=ATR, train_split=train_split, dummy_period=dumy_period)
+        self.sim = Simulator(csv, ATR=ATR, train_split=train_split, dummy_period=dummy_period)
         self.portfolio = Portfolio(prices=self.sim.data[['Open','Close']], trade_period= trade_period, train_end_index=self.sim.train_end_index)
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.Box(self.sim.min_values, self.sim.max_values)
