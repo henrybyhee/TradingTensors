@@ -3,7 +3,7 @@ import gym_trading
 from gym_trading.envs.Q_learning import Q
 
 
-csv = r"C:\Users\Henry\Documents\Python Stuff\Upwork Trial\Forex Ai\GBPUSD240.csv"
+csv = r"GBPUSD240.csv" #Input your csv address here
 env = gym.make('trading-v0')
 env.initialise_simulator(csv, ATR=True, SMA=True, RSI=True, BB=True, trade_period=5, train_split=0.7, dummy_period=None)
 
