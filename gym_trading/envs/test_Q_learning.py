@@ -29,6 +29,7 @@ Q_learning._overall_summary()
 
 #Episode review
 x = input("Enter the episode to be reviewed: \n")
+x = int(x) #convert to an integer!
 Q_learning.episode_review(x)
 
 
