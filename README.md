@@ -13,7 +13,7 @@ This framework was built in Python 3.5.2
 Refer to the [tutorial](https://github.com/Henry-bee/gym_trading/blob/master/Gym_Trading%20Tutorial.ipynb)
 
 
-DQN is here: Baselines + Self-implemented(buggy) 
+DQN is here: Baselines vs Self-implemented(pls help spot the bug) 
 
 This is made for Mr. Peter Henry
 
