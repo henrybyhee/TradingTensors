@@ -324,6 +324,10 @@ class Q_Network(LearningAgent):
         super().__init__('Q_network', train_episodes, env)
 
         self.path = './saved_tensor_models/dqn.ckpt'
+
+        if not os.path.exists(os.path.dirname(self.path)):
+            os.makedirs(os.path.dirname(self.path))
+
         self.neurons = hidden_layers
         self.frequency = update_frequency
         
@@ -478,7 +482,18 @@ class Q_Network(LearningAgent):
             print("End of Testing, Total Reward is %s, Average Reward is %s"%(self.env.portfolio.total_reward, self.env.portfolio.average_profit_per_trade))
 
 
+    def run_episodes(self, episodes, train):
 
+        self.env._reset(train=train, Oanda=self.Oanda)
+
+        if train:
+            converge_ = input("Enter convergence threshold: \n")
+            explore_ = input("Enter episodes to explore: \n")
+
+            self.train_model(convergence_threshold=int(converge_), episodes_to_explore=int(expore_))
+
+        else:
+            self.test_model()
         
 
 
