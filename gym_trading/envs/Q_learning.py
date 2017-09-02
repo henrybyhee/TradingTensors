@@ -118,7 +118,7 @@ class LearningAgent(object):
 
         #Trade-by-Trade review
         print(_journal)
-
+    
     def trade_with_Oanda(self, units=1, train=True):
         
         self.Oanda = True
@@ -136,8 +136,8 @@ class LearningAgent(object):
         
         self.env.portfolio.set_client(self.env.sim.client, self.env.sim.accountID, data4order, self.env.sim.instrument)
         
-        self.run_episodes(1, train)
-
+        self.run_episodes(1, train=train)
+    
 
 class Q(LearningAgent):
     '''Q_table implementation'''
@@ -203,13 +203,12 @@ class Q(LearningAgent):
             print("Training period  %s - %s"%(self.env.sim.date_time[start], self.env.sim.date_time[end]))
 
         max_reward = 0
-  
-        if optimal_table is not None:
+        
+        if not optimal_table is None:
             #Initialise the lookup table with the best policy before running episodes
             self.lookup_table = optimal_table
+
         
-
-
         for episode in range(episodes):
 
             self.env._reset(train, self.Oanda)
@@ -219,7 +218,7 @@ class Q(LearningAgent):
             #Initialise state
             start = self.env.sim.states[start_index-1]
             state = self.approx_state(start)
-            action_dict = {'explore':0, 'exploit':0}
+        
 
             while done is False:
                 
@@ -234,11 +233,11 @@ class Q(LearningAgent):
                     if np.abs(np.random.randn()) < EPSILON:
                         #Exploration
                         action = np.random.randint(0,2)
-                        action_dict['explore'] += 1
+                        
                     else:
                         #Exploitation
                         action = np.argmax(self.lookup_table[state, choices])
-                        action_dict['exploit'] += 1
+                        
     
                 #Step forward with the selected action
                 obs, reward, done, info = self.env._step(action)
@@ -250,7 +249,7 @@ class Q(LearningAgent):
                 self.lookup_table[state, action] = self.lookup_table[state, action]  + self.lr * (reward + self.y* max(self.lookup_table[next_state,:]) - self.lookup_table[state, action])
                 
                 state = next_state
-
+                
             if not train:
                 start = self.env.sim.train_end_index + 1
                 end = self.env.sim.count - 1
@@ -333,10 +332,10 @@ class Q_Network(LearningAgent):
         
         self.online_network = DQN(env, hidden_layers, 'online')
         self.target_network = DQN(env, hidden_layers, 'target')
-
+        self.Oanda = False
 
     def train_model(self, batch_size=32, policy_measure='optimal', convergence_threshold=500, episodes_to_explore=100):
-
+        
         self.env._reset(train=True, Oanda=self.Oanda)
         steps_per_episode = self.env.sim._end - self.env.sim.current_index
         total_steps = steps_per_episode * self.train_episodes
@@ -355,7 +354,7 @@ class Q_Network(LearningAgent):
             sess.run(tf.global_variables_initializer())
             self.online_network, self.target_network = update_target_network(sess,self.online_network,self.target_network)
             
-
+            
             saver = tf.train.Saver()
             t = 0
 
@@ -373,6 +372,9 @@ class Q_Network(LearningAgent):
                 solved = False
                 action_dict = {0:0, 1:0, 2:0}
 
+
+                print("Training Period: %s - %s"%(self.env.sim.date_time[0], self.env.sim.date_time[self.env.sim.train_end_index]))
+                
                 while not done:
                     
                     #Predict action given this observation, with random chance of episilon (Exploration)
@@ -482,18 +484,23 @@ class Q_Network(LearningAgent):
             print("End of Testing, Total Reward is %s, Average Reward is %s"%(self.env.portfolio.total_reward, self.env.portfolio.average_profit_per_trade))
 
 
-    def run_episodes(self, episodes, train):
-
-        self.env._reset(train=train, Oanda=self.Oanda)
-
-        if train:
-            converge_ = input("Enter convergence threshold: \n")
-            explore_ = input("Enter episodes to explore: \n")
-
-            self.train_model(convergence_threshold=int(converge_), episodes_to_explore=int(expore_))
-
-        else:
-            self.test_model()
+    def trade_with_Oanda(self, units=1):
+        
+        self.Oanda = True  
+        data4order = {
+            "order": {
+                    "timeInForce": "FOK",
+                    "units": units,
+                    "type": "MARKET",
+                    "positionFill": "DEFAULT"
+            }
+        }
+        
+        self.env.portfolio.set_client(self.env.sim.client, self.env.sim.accountID, data4order, self.env.sim.instrument)
+        
+        self.env.sim.trade_with_Oanda()
+        
+        self.test_model()
         
 
 

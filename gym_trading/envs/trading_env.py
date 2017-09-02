@@ -492,10 +492,10 @@ class Simulator(object):
         
         self.size_of_history = 17
         self._form_data(mean_std=False)
-        
+
         self.last_time = self.data.index[-1].to_pydatetime()
         self.times_zones_delta = datetime.now() - self.last_time 
-
+        
     
     def get_new_data(self):
 
@@ -506,15 +506,12 @@ class Simulator(object):
             
             while( datetime.now() - self.times_zones_delta - self.last_time  < self.delta  ):
                 time.sleep(1)
-                
-             
+
             self.size_of_history = 17
             self._form_data()
+            print("Generating new candle")
             if (self.last_time > last_time):
                 break
-
-            
-       
 
 
     def _generate_indicators(self, data, ATR, SMA, RSI, BB):
@@ -548,7 +545,7 @@ class Simulator(object):
         
         if (self.client is None and self.Oanda):
             self.client = oandapyV20.API(access_token=self.access_token)
-            
+          
         if train:
             self.current_index = 1
             self._end = self.train_end_index
@@ -560,11 +557,12 @@ class Simulator(object):
 
     def _step(self):
 		
-        if (self.Oanda):
+        if self.Oanda:
             self.current_index = -1
             self.get_new_data()
             obs = self.states[self.current_index]
             done = False
+            
         else:
             obs = self.states[self.current_index]
             self.current_index += 1
@@ -584,10 +582,10 @@ class TradingEnv(gym.Env):
         self.portfolio = Portfolio(prices=self.sim.data[['Open','Close']], trade_period=trade_period, train_end_index=self.sim.train_end_index)
         
         self.Oanda = oanda
-
+        
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.Box(self.sim.min_values, self.sim.max_values)
-        
+    
     def _step(self, action):
     #Return the observation, done, reward from Simulator and Portfolio
         obs, done = self.sim._step()
@@ -596,7 +594,7 @@ class TradingEnv(gym.Env):
         return obs, reward, done, info
     
     def _reset(self, train=True, Oanda=False):
-        self.sim._reset(train, Oanda)
-        self.portfolio._reset(train, Oanda)
+        self.sim._reset(train=train, Oanda=Oanda)
+        self.portfolio._reset(train=train, Oanda=Oanda)
     
 
