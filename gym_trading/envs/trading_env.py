@@ -491,6 +491,7 @@ class Simulator(object):
     def trade_with_Oanda(self):
         
         self.size_of_history = 17
+        self.Oanda = True
         self._form_data(mean_std=False)
 
         self.last_time = self.data.index[-1].to_pydatetime()
