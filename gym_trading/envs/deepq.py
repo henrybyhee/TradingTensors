@@ -52,7 +52,7 @@ class DQN(object):
 
         self.loss = tf.reduce_mean(self.td_error)
 
-
+        #Dynamic Learning steps- decaying with episodes
         global_step = tf.Variable(0, trainable=False)
         learner_decay = tf.train.exponential_decay(1e-3, global_step, 10000, 0.96, staircase=True)
         self.trainer = tf.train.AdamOptimizer(learning_rate=learner_decay)

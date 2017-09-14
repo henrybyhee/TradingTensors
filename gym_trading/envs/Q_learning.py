@@ -1,26 +1,20 @@
 import itertools
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import matplotlib.finance as mf
-import numpy as np
-import pandas as pd
-
-import itertools
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import matplotlib.finance as mf
-import numpy as np
-import pandas as pd
 import os
+import time
+import datetime
 
 import baselines.common.tf_util as U
-from baselines import deepq
-from baselines.deepq.replay_buffer import ReplayBuffer
-from baselines.common.schedules import LinearSchedule
+import matplotlib.dates as mdates
+import matplotlib.finance as mf
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import tensorflow as tf
+from baselines import deepq
+from baselines.common.schedules import LinearSchedule
+from baselines.deepq.replay_buffer import ReplayBuffer
+
 from .deepq import DQN, mini_batch_training, q_act, update_target_network
-
-
 
 
 class LearningAgent(object):
@@ -309,23 +303,26 @@ class Q(LearningAgent):
             print("Current Best Policy: %s (Total Reward), %s (Average Reward)"%(self.reward_record[self.best_index], self.avg_reward_record[self.best_index]))
 
 
-
-
-
-
-
-
-
-
 class Q_Network(LearningAgent):
     def __init__(self, env, hidden_layers=[128, 64, 32] , train_episodes=1500, update_frequency=500):
 
         super().__init__('Q_network', train_episodes, env)
 
-        self.path = './saved_tensor_models/dqn.ckpt'
+        self.parent_path = './saved_tensor_models'
 
-        if not os.path.exists(os.path.dirname(self.path)):
-            os.makedirs(os.path.dirname(self.path))
+        if os.path.exists(self.parent_path) and len(os.listdir(self.parent_path)) > 0:
+            print("Defining tensor template")
+
+            timestamp =""
+            for i in os.listdir(self.parent_path):
+                if "Episode" in i:
+                    timestamp = i[:4]
+                    break
+
+            self.tensor_dir_template = os.path.join(self.parent_path, timestamp+'_Episode%s.ckpt')
+
+        if not os.path.exists(self.parent_path):
+            os.makedirs(self.parent_path)
 
         self.neurons = hidden_layers
         self.frequency = update_frequency
@@ -334,9 +331,19 @@ class Q_Network(LearningAgent):
         self.target_network = DQN(env, hidden_layers, 'target')
         self.Oanda = False
 
+
+
     def train_model(self, batch_size=32, policy_measure='optimal', convergence_threshold=500, episodes_to_explore=100):
         
         self.env._reset(train=True, Oanda=self.Oanda)
+
+        #Defining the directory format for the tensor models
+        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%H%M')
+        self.tensor_dir_template = os.path.join(self.parent_path, timestamp+'_Episode%s.ckpt')
+
+        #Reset tensor folder
+        self.reset_tensor_folder()
+
         steps_per_episode = self.env.sim._end - self.env.sim.current_index
         total_steps = steps_per_episode * self.train_episodes
         
@@ -349,21 +356,27 @@ class Q_Network(LearningAgent):
             inter_op_parallelism_threads=8,
             intra_op_parallelism_threads=8
             )
+
+
         with tf.Session(config=config_proto) as sess:
             
             sess.run(tf.global_variables_initializer())
             self.online_network, self.target_network = update_target_network(sess,self.online_network,self.target_network)
             
             
-            saver = tf.train.Saver()
+            saver = tf.train.Saver(max_to_keep=10)
             t = 0
 
             self.reset_bookkeeping_tools()  
             max_reward = 0 
             self.best_index = 0
 
-            for epi in range(self.train_episodes):
+            for epi in range(1, self.train_episodes+1):
                 
+
+                #Update the episode path
+                episode_path = self.tensor_dir_template%epi
+
                 self.env._reset(train=True, Oanda=self.Oanda)
         
                 state = self.env.sim.states[0]
@@ -371,7 +384,6 @@ class Q_Network(LearningAgent):
                 done = False
                 solved = False
                 action_dict = {0:0, 1:0, 2:0}
-
 
                 print("Training Period: %s - %s"%(self.env.sim.date_time[0], self.env.sim.date_time[self.env.sim.train_end_index]))
                 
@@ -412,7 +424,7 @@ class Q_Network(LearningAgent):
                         self.equity_curve_record.append(self.env.portfolio.equity_curve)
                         
 
-                        print("End of Episode %s, Total Reward is %s, Average Reward is %.3f"%(epi+1, self.env.portfolio.total_reward, self.env.portfolio.average_profit_per_trade))
+                        print("End of Episode %s, Total Reward is %s, Average Reward is %.3f"%(epi, self.env.portfolio.total_reward, self.env.portfolio.average_profit_per_trade))
                         print("Percentage of time spent on exploring (Random Action): %s %%"%(int(100 * exploration.value(t))))
                         print(action_dict)
                         assert policy_measure in ['average', 'highest', 'optimal'], "policy measure can only be 'average', 'highest', or 'optimal'"
@@ -425,35 +437,44 @@ class Q_Network(LearningAgent):
                             score = np.abs(self.avg_reward_record[-1])*self.reward_record[-1]
                         
 
-                        if score > max_reward and exploration.value(t) < 0.1:
+                        
+
+                        if score > max_reward and exploration.value(t) < 0.15:
                             #Save model if there is a new max_reward, with little exploration
-                            print("New Maximum Score found! Saving this model. Score: %s"%score)
-                            saver.save(sess, self.path)
+                            print("New Maximum Score found! Score: %s"%score)
                             max_reward = score
                             self.best_index = epi
+                            saver.save(sess, episode_path) #Saving all the best episodes
+
 
                         print()
                         #Check for Convergence
                         if np.mean(self.reward_record[-51:-1]) > convergence_threshold and exploration.value(t) < 0.04:
                             solved = True
                             
-
                 if solved:
                     print("Converged!")
                     print()
                     break
     
-    def test_model(self):
+    def test_model(self, episode):
         '''No Optimization is performed during Testing phase'''        
 
-        if not os.path.exists(self.path +'.meta'):
-            print("No .meta files are found for this model %s, please train the network."%(self.path))
+        if not os.listdir(self.parent_path):
+            print("No saved tensor models are found for this model %s, please train the network."%(self.parent_path))
+            return
+        
+        #Retrieve the model for the episode passed
+        model_path = self.tensor_dir_template%episode
+
+        if not os.path.exists(model_path+'.meta'):
+            print("Tensor for episode %s is not found"%(episode))
             return
 
         with tf.Session() as sess:
             #Use previously run model
             saver = tf.train.Saver()
-            saver.restore(sess, self.path)
+            saver.restore(sess, model_path)
 
             self.reset_bookkeeping_tools()
             self.env._reset(train=False, Oanda=self.Oanda)
@@ -467,6 +488,9 @@ class Q_Network(LearningAgent):
                 action = sess.run(self.online_network.Q_action, feed_dict={
                     self.online_network._inputs: np.reshape(state, [1, self.env.observation_space.shape[0]])
                     })[0]
+
+                if self.env.portfolio.holding_trade:
+                    action = 2
 
                 #Step forward in the environment
                 next_state, reward, done, _ = self.env._step(action)
@@ -486,6 +510,9 @@ class Q_Network(LearningAgent):
 
     def trade_with_Oanda(self, units=1):
         
+
+        episode = input("using tensor model in episode _?\n")
+
         self.Oanda = True  
         data4order = {
             "order": {
@@ -500,9 +527,11 @@ class Q_Network(LearningAgent):
         
         self.env.sim.trade_with_Oanda()
         
-        self.test_model()
+        self.test_model(episode)
         
 
+    def reset_tensor_folder(self):
+        '''Remove all saved tensor model in the folder'''
 
-
-        
+        for dir_ in os.listdir(self.parent_path):
+            os.remove(os.path.join(self.parent_path, dir_))
