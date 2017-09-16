@@ -2,6 +2,7 @@ import itertools
 import os
 import time
 import datetime
+import string
 
 import baselines.common.tf_util as U
 import matplotlib.dates as mdates
@@ -331,6 +332,7 @@ class Q_Network(LearningAgent):
         self.target_network = DQN(env, hidden_layers, 'target')
         self.Oanda = False
 
+        self.best_models = []
 
 
     def train_model(self, batch_size=32, policy_measure='optimal', convergence_threshold=500, episodes_to_explore=100):
@@ -358,13 +360,15 @@ class Q_Network(LearningAgent):
             )
 
 
+        current_top_10s = [] #Keep track of top 10 performing models after every episodes
+
         with tf.Session(config=config_proto) as sess:
             
             sess.run(tf.global_variables_initializer())
             self.online_network, self.target_network = update_target_network(sess,self.online_network,self.target_network)
             
             
-            saver = tf.train.Saver(max_to_keep=10)
+            saver = tf.train.Saver(max_to_keep=None)
             t = 0
 
             self.reset_bookkeeping_tools()  
@@ -372,10 +376,6 @@ class Q_Network(LearningAgent):
             self.best_index = 0
 
             for epi in range(1, self.train_episodes+1):
-                
-
-                #Update the episode path
-                episode_path = self.tensor_dir_template%epi
 
                 self.env._reset(train=True, Oanda=self.Oanda)
         
@@ -436,15 +436,43 @@ class Q_Network(LearningAgent):
                         elif policy_measure == 'optimal':
                             score = np.abs(self.avg_reward_record[-1])*self.reward_record[-1]
                         
-
+                        
                         
 
-                        if score > max_reward and exploration.value(t) < 0.15:
-                            #Save model if there is a new max_reward, with little exploration
-                            print("New Maximum Score found! Score: %s"%score)
-                            max_reward = score
-                            self.best_index = epi
-                            saver.save(sess, episode_path) #Saving all the best episodes
+                        if any(score > x[1] for x in current_top_10s) or not current_top_10s:
+                            #If this score is betterr than any top 10 score OR first episode 
+                            print("Top 10 Score! Score: %s"%score)
+
+                            episode_path = self.tensor_dir_template%epi
+                            saver.save(sess, episode_path)
+
+                            if score > max_reward: 
+                                #If this is the new best score, do the following
+                                max_reward = score
+                                self.best_index = epi
+                                print("New Maximum Score found! Score: %s"%score)
+                            
+                            if len(current_top_10s) < 10:
+                                #Populate the top 10 array if there aren't enough
+
+                                current_top_10s.append((epi, score))
+
+                                #Sort in descending order by score
+                                current_top_10s = sorted(current_top_10s, key=lambda x: x[1], reverse=True)
+
+
+                            else:
+                                
+                                #Find the lowest scoring episode, which is the last element
+                                weakling = current_top_10s[-1][0]
+
+                                #Replace the lowest scoring episode with this episode and its score
+                                current_top_10s.pop(-1)
+                                current_top_10s.append((epi, score))
+
+                                #Sort in descending order
+                                current_top_10s = sorted(current_top_10s, key= lambda x: x[1], reverse=True)
+                                
 
 
                         print()
@@ -454,6 +482,7 @@ class Q_Network(LearningAgent):
                             
                 if solved:
                     print("Converged!")
+                    self.best_models = current_top_10s
                     print()
                     break
     
@@ -506,6 +535,16 @@ class Q_Network(LearningAgent):
             self.equity_curve_record.append(self.env.portfolio.equity_curve)
 
             print("End of Testing, Total Reward is %s, Average Reward is %s"%(self.env.portfolio.total_reward, self.env.portfolio.average_profit_per_trade))
+
+    def _overall_summary(self):
+        super()._overall_summary()
+        
+        print()
+
+        print("         TOP 10 Episodes         ")
+
+        for episode, reward in self.best_models:
+            print("Episode %s                   |            Reward: %s"%(episode, reward))
 
 
     def trade_with_Oanda(self, units=1):
