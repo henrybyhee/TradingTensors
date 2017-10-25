@@ -5,7 +5,9 @@ A simple trading simulator inspired by the OpenAI framework. The objective of th
 
 
 ## Experiments
-Experiment 0:  
+[Base Environment Representation] (https://github.com/Henry-bee/TradingTensors/blob/master/Examples/Base%20Environment.ipynb)
+[Experiment #1: Trading with previous n periods of Open-Open Return (DQN)] (https://github.com/Henry-bee/TradingTensors/blob/master/Examples/Experiment%201%20Basic%20DQN%20Model%20and%20walkthrough.ipynb)
+[Experiment #2: Trading with Moon Coordinates? (DQN)] (https://github.com/Henry-bee/TradingTensors/blob/master/Examples/Experiment%202%20DQN%20with%20planetry%20data%20.ipynb)
 
 Sources:
 [DQN made simple by Arthur Juliani](https://medium.com/@awjuliani/simple-reinforcement-learning-with-tensorflow-part-4-deep-q-networks-and-beyond-8438a3e2b8df)
