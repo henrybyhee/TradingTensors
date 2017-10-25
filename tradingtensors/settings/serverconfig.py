@@ -7,7 +7,7 @@ ID = "" #Oanda Account ID
 # True -> (OPEN[t] - OPEN[t-1])/(OPEN[t])
 # False -> (CLOSE[t-1] - CLOSE[t-2]) / CLOSE[t-2]
 # Note: We won't know what today's close is until tomorrow!
-RETURNS_BY_OPEN = False
+RETURNS_BY_OPEN = True
 
 #ENVIRONMENT 
 SYMBOL_HISTORY = 500
