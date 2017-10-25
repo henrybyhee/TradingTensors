@@ -1,5 +1,5 @@
-TOKEN = "ced188fe660dbf198e6f3ce2f159e6f5-3d74622bba869c6bc8a1e13b4ea1a510"
-ID = "101-004-5914239-001"
+TOKEN = ""
+ID = ""
 
 
 #Compute Returns
