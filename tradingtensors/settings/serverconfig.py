@@ -1,5 +1,5 @@
-TOKEN = ""
-ID = ""
+TOKEN = "" #Oanda Token
+ID = "" #Oanda Account ID
 
 
 #Compute Returns
