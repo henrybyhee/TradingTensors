@@ -1,0 +1,5 @@
+tradingtensors.egg-info/PKG-INFO
+tradingtensors.egg-info/SOURCES.txt
+tradingtensors.egg-info/dependency_links.txt
+tradingtensors.egg-info/requires.txt
+tradingtensors.egg-info/top_level.txt

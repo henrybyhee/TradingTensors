@@ -9,7 +9,7 @@ import pandas as pd
 import tensorflow as tf
 
 from ..settings.DQNsettings import (FINAL_P, GAMMA, INITIAL_P,
-                                    UPDATE_FREQUENCY)
+                                    UPDATE_FREQUENCY, HIDDEN_LAYERS)
 from .BaseQ import (DQN, LinearDecay, ReplayBuffer, choose_action,
                     mini_batch_training, update_target_network)
 from .visual_utils import ohlcPlot, rewardPlot
@@ -34,24 +34,24 @@ class LearningAgent(object):
 class DQNAgent(LearningAgent):
 
     def __init__(
-        self, env, PARENT_PATH, hidden_layers=[128, 64, 32]
+        self, env, PARENT_PATH
         ):
 
         #Base Learning Agent initialization
         super().__init__(
             env, 
-            'Deep Q Network',
+            'Deep Q Network'
         )
 
 
         self.tensor_dir_template =None
         self.PARENT_PATH = PARENT_PATH
 
-        self.neurons = hidden_layers
+        self.neurons = HIDDEN_LAYERS
         self.UPDATE_FREQUENCY = UPDATE_FREQUENCY
 
-        self.online_net = DQN(env, hidden_layers, 'online')
-        self.target_net = DQN(env, hidden_layers, 'target')
+        self.online_net = DQN(env, self.neurons, 'online')
+        self.target_net = DQN(env, self.neurons, 'target')
 
         self.best_models = []
 
@@ -149,7 +149,8 @@ class DQNAgent(LearningAgent):
                         self.online_net, 
                         exploration,
                         self.env,
-                        sess)
+                        sess,
+                        TRAIN=True)
 
                     #Advance one step with the action in our environment
                     new_obs, _action, reward, DONE = self.env.step(ACTION)
@@ -354,7 +355,7 @@ class DQNAgent(LearningAgent):
                         self.online_net, 
                         0, #Greedy selection
                         self.env,
-                        sess)
+                        sess, TRAIN=False)
 
                 #Transit to next state given action
                 new_obs, _, _, DONE = self.env.step(ACTION)
@@ -429,7 +430,8 @@ class DQNAgent(LearningAgent):
                         self.online_net, 
                         0, #Greedy selection
                         self.env,
-                        SESS)
+                        SESS,
+                        TRAIN=False)
                     
                     #Initiate position with Portfolio object
                     self.env.portfolio.newCandleHandler(ACTION)

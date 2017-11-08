@@ -1,7 +1,6 @@
 TOKEN = "" #Oanda Token
 ID = "" #Oanda Account ID
 
-
 #Compute Returns
 # Now=t,  we only know current open and last close
 # True -> (OPEN[t] - OPEN[t-1])/(OPEN[t])
@@ -11,6 +10,7 @@ RETURNS_BY_OPEN = True
 
 #ENVIRONMENT 
 SYMBOL_HISTORY = 500
+TRAIN_SPLIT = 0.6
 
 #INDICATORS
 from talib import ATR, SMA, RSI, BBANDS

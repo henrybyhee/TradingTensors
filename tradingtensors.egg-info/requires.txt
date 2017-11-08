@@ -1,0 +1,7 @@
+numpy
+pandas
+tensorflow
+
+[swisseph]
+swissseph
+talib

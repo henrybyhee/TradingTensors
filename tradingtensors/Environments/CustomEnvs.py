@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from .BaseClass import BaseEnv, BasePortfolio, BaseSimulator
-from ..settings.serverconfig import GRANULARITIES, INDICATORS_SETTINGS, TF_IN_SECONDS, SYMBOL_HISTORY
+from ..settings.serverconfig import GRANULARITIES, INDICATORS_SETTINGS, TF_IN_SECONDS, SYMBOL_HISTORY, TRAIN_SPLIT
 from ..functions.planetry_functions import get_planet_coordinates
 from ..functions.utils import OandaHandler, get_indicators, get_returns
 
@@ -13,7 +13,7 @@ class OandaEnv(BaseEnv):
 
     def __init__(self, INSTRUMENT, TIMEFRAME, train=True, _isLive=False,
                  mode='practice', additional_pairs=[], indicators=[],
-                 trade_duration=1, lookback_period=0, train_split=0.7, 
+                 trade_duration=1, lookback_period=0, 
                  planet_data={}, PLANET_FORWARD_PERIOD=0, PORTFOLIO_TYPE='FIXED PERIOD'):
 
         assert TIMEFRAME in GRANULARITIES, "Please use this timeframe format {}".format(
@@ -22,14 +22,14 @@ class OandaEnv(BaseEnv):
         assert all([i in INDICATORS_SETTINGS.keys() for i in indicators]), \
         "Please use these indicators keys {}".format(INDICATORS_SETTINGS.keys())
 
-        api_Handle = OandaHandler(TIMEFRAME, mode)
-        PRECISION = api_Handle.get_instrument_precision(INSTRUMENT)
+        self.api_Handle = OandaHandler(TIMEFRAME, mode)
+        PRECISION = self.api_Handle.get_instrument_precision(INSTRUMENT)
 
         self.sim = OandaSim(
-            handle=api_Handle, TF=TIMEFRAME, SYMBOL=INSTRUMENT,
+            handle=self.api_Handle, SYMBOL=INSTRUMENT,
             _isLive=_isLive, other_pairs=additional_pairs,
             indicators=indicators, lookback=lookback_period,
-            train_split=train_split, _isTraining=train,
+            train_split=TRAIN_SPLIT, _isTraining=train,
             PRECISION=PRECISION,
             # Planet Data for Mr Peter's version
             planet_data=planet_data, PLANET_PERIOD=PLANET_FORWARD_PERIOD
@@ -37,7 +37,7 @@ class OandaEnv(BaseEnv):
 
         if PORTFOLIO_TYPE == 'FIXED PERIOD':
             self.portfolio = FixedPeriodPortfolio(
-                handle=api_Handle,
+                handle=self.api_Handle,
                 DURATION=trade_duration,
                 SYMBOL=INSTRUMENT,
                 PRECISION=PRECISION)
@@ -46,11 +46,9 @@ class OandaEnv(BaseEnv):
         self.isLive = _isLive
 
         self.SYMBOL = INSTRUMENT
-
-        self.api_Handle = api_Handle
-
         self.action_space = 3
         self.observation_space = self.sim.states_dim
+
 
     def step(self, action):
         new_obs, portfolio_feed, DONE = self.sim.step()
